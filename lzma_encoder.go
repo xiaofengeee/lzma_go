@@ -94,17 +94,45 @@ type compressionLevel struct {
 }
 
 // levels is intended to be constant, but there is no way to enforce this constraint
-var levels = []compressionLevel{
-	compressionLevel{},                        // 0
-	compressionLevel{16, 64, 3, 0, 2, "bt4"},  // 1
-	compressionLevel{18, 64, 3, 0, 2, "bt4"},  // 2
-	compressionLevel{20, 64, 3, 0, 2, "bt4"},  // 3
-	compressionLevel{22, 128, 3, 0, 2, "bt4"}, // 4
-	compressionLevel{23, 128, 3, 0, 2, "bt4"}, // 5
-	compressionLevel{24, 128, 3, 0, 2, "bt4"}, // 6
-	compressionLevel{25, 256, 3, 0, 2, "bt4"}, // 7
-	compressionLevel{26, 256, 3, 0, 2, "bt4"}, // 8
-	compressionLevel{27, 256, 3, 0, 2, "bt4"}, // 9
+//var levels = []compressionLevel{
+//	compressionLevel{},                        // 0
+//	compressionLevel{16, 64, 3, 0, 2, "bt4"},  // 1
+//	compressionLevel{18, 64, 3, 0, 2, "bt4"},  // 2
+//	compressionLevel{20, 64, 3, 0, 2, "bt4"},  // 3
+//	compressionLevel{22, 128, 3, 0, 2, "bt4"}, // 4
+//	compressionLevel{23, 128, 3, 0, 2, "bt4"}, // 5
+//	compressionLevel{24, 128, 3, 0, 2, "bt4"}, // 6
+//	compressionLevel{25, 256, 3, 0, 2, "bt4"}, // 7
+//	compressionLevel{26, 256, 3, 0, 2, "bt4"}, // 8
+//	compressionLevel{27, 256, 3, 0, 2, "bt4"}, // 9
+//}
+
+//防止多次修改的问题，可以gob先序列化再反序列化
+func getCompressionLevel(level int) compressionLevel {
+	switch level {
+	case 0:
+		return compressionLevel{}
+	case 1:
+		return compressionLevel{16, 64, 3, 0, 2, "bt4"}
+	case 2:
+		return compressionLevel{18, 64, 3, 0, 2, "bt4"}
+	case 3:
+		return compressionLevel{20, 64, 3, 0, 2, "bt4"}
+	case 4:
+		return compressionLevel{22, 128, 3, 0, 2, "bt4"}
+	case 5:
+		return compressionLevel{23, 128, 3, 0, 2, "bt4"}
+	case 6:
+		return compressionLevel{24, 128, 3, 0, 2, "bt4"}
+	case 7:
+		return compressionLevel{25, 256, 3, 0, 2, "bt4"}
+	case 8:
+		return compressionLevel{26, 256, 3, 0, 2, "bt4"}
+	case 9:
+		return compressionLevel{27, 256, 3, 0, 2, "bt4"}
+	}
+
+	panic("wrong level !")
 }
 
 func (cl *compressionLevel) checkValues() {
@@ -796,9 +824,12 @@ DoWhile1:
 	return
 }
 
-var tempPrices []uint32 = make([]uint32, kNumFullDistances)
+//移动此定义到函数内部，多个线程同量访问的bug
+//var tempPrices []uint32 = make([]uint32, kNumFullDistances)
 
 func (z *encoder) fillDistancesPrices() {
+	var tempPrices []uint32 = make([]uint32, kNumFullDistances)
+
 	for i := uint32(kStartPosModelIndex); i < kNumFullDistances; i++ {
 		posSlot := getPosSlot(i)
 		footerBits := posSlot>>1 - 1
@@ -1000,7 +1031,9 @@ func (z *encoder) encoder(r io.Reader, w io.Writer, size int64, level int) (err 
 	// do not asign &levels[level] directly to z.cl because dictSize is modified later
 	// and the next run of this funcion with the same compression level will fail;
 	// levels is intended to be const, but there is no way enforce this constraint.
-	cl := levels[level]
+	//修改为新的方式
+	//cl := levels[level]
+	cl := getCompressionLevel(level)
 	z.cl = &cl
 	z.cl.checkValues()
 	z.distTableSize = z.cl.dictSize * 2
